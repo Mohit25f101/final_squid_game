@@ -4,7 +4,7 @@ import { BrowserQRCodeReader } from '@zxing/browser'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
-type State = 'scanning' | 'entering_roll' | 'submitting' | 'success' | 'error'
+type State = 'scanning' | 'already_registered' | 'entering_roll' | 'submitting' | 'success' | 'error'
 
 export default function RegisterPage() {
   const supabase = createClient()
@@ -15,11 +15,13 @@ export default function RegisterPage() {
   const [scannedQR, setScannedQR] = useState('')
   const [rollNo, setRollNo] = useState('')
   const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [existingParticipant, setExistingParticipant] = useState<{ name: string; roll_no: string; assigned_qr: string } | null>(null)
 
   const startScanner = useCallback(async () => {
     setState('scanning')
     setScannedQR('')
     setRollNo('')
+    setExistingParticipant(null)
     try {
       const reader = new BrowserQRCodeReader()
       codeReaderRef.current = reader
@@ -28,14 +30,26 @@ export default function RegisterPage() {
       const controls = await reader.decodeFromVideoDevice(
         deviceId,
         videoRef.current!,
-        (result, error) => {
+        async (result, error) => {
           if (result) {
             const text = result.getText()
             const qrId = text.split('/').pop() || text
             if (qrId.startsWith('SG-') || text.includes('player')) {
               controls.stop()
               setScannedQR(qrId)
-              setState('entering_roll')
+              // Check if this QR is already registered
+              const { data: existing } = await supabase
+                .from('participants')
+                .select('name, roll_no, assigned_qr')
+                .eq('assigned_qr', qrId)
+                .single()
+              if (existing) {
+                setExistingParticipant(existing)
+                setState('already_registered')
+              } else {
+                setExistingParticipant(null)
+                setState('entering_roll')
+              }
             }
           }
         }
@@ -90,6 +104,27 @@ export default function RegisterPage() {
               <div className="scan-line" />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Already registered — show existing participant, block re-registration */}
+      {state === 'already_registered' && existingParticipant && (
+        <div className="card" style={{ width: '100%', maxWidth: 400, textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Already Registered</div>
+          <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{existingParticipant.name}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 4 }}>{existingParticipant.roll_no}</div>
+          <div style={{
+            display: 'inline-block', padding: '4px 14px', borderRadius: 100,
+            background: 'var(--pink-subtle)', border: '1px solid rgba(255,45,120,0.3)',
+            color: 'var(--pink)', fontWeight: 800, fontSize: 15, letterSpacing: 1, marginBottom: 20,
+          }}>{existingParticipant.assigned_qr}</div>
+          <div className="alert alert-warning" style={{ marginBottom: 16, textAlign: 'left' }}>
+            This QR card is already linked to <strong>{existingParticipant.name}</strong>. It cannot be reassigned.
+          </div>
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={startScanner} id="rescan-after-registered-btn">
+            Scan Next Card
+          </button>
         </div>
       )}
 
