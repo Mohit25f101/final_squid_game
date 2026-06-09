@@ -30,6 +30,7 @@ export async function proxy(request: NextRequest) {
   // Public routes — always accessible
   if (
     pathname.startsWith('/player/') ||
+    pathname.startsWith('/api/player/') ||
     pathname === '/live' ||
     pathname === '/login'
   ) {
