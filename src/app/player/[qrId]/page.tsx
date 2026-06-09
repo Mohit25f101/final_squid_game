@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
 import PlayerScoreboardClient from './PlayerScoreboardClient'
+import UnregisteredCard from './UnregisteredCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +21,8 @@ export default async function PlayerPage({ params }: { params: { qrId: string } 
     .eq('assigned_qr', qrId)
     .single()
 
-  if (!participant) notFound()
+  // QR exists but no participant registered yet — show friendly screen
+  if (!participant) return <UnregisteredCard qrId={qrId} />
 
   const { data: rounds } = await supabase
     .from('rounds')
