@@ -57,8 +57,9 @@ function ResetModal({ onClose, onConfirmed }: { onClose: () => void; onConfirmed
             Reset All Data
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            This will permanently delete <strong style={{ color: 'var(--text-primary)' }}>all participants</strong>,{' '}
-            <strong style={{ color: 'var(--text-primary)' }}>round results</strong>, and{' '}
+            This will <strong style={{ color: 'var(--text-primary)' }}>unregister all participants</strong>, clear{' '}
+            <strong style={{ color: 'var(--text-primary)' }}>QR assignments</strong>, delete{' '}
+            <strong style={{ color: 'var(--text-primary)' }}>round results</strong> and{' '}
             <strong style={{ color: 'var(--text-primary)' }}>audit logs</strong>.
             The active round will be cleared. This cannot be undone.
           </div>
