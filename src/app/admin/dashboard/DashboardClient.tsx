@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { DashboardStats, Round } from '@/lib/types'
+import toast from 'react-hot-toast'
 
 // ─── Reset Confirmation Modal ─────────────────────────────────────────────────
 function ResetModal({ onClose, onConfirmed }: { onClose: () => void; onConfirmed: () => void }) {
@@ -14,14 +15,16 @@ function ResetModal({ onClose, onConfirmed }: { onClose: () => void; onConfirmed
     try {
       const res = await fetch('/api/admin/reset', { method: 'POST' })
       const data = await res.json()
-      if (!data.success) {
-        alert('Reset failed: ' + (data.message || 'Unknown error'))
+      if (!res.ok || !data.success) {
+        toast.error('Reset failed: ' + (data.message || 'Unknown error'))
         setResetting(false)
         return
       }
-      onConfirmed()
+      toast.success('All data reset successfully!')
+      // Hard reload after 1s so server-fetched stats fully refresh
+      setTimeout(() => window.location.reload(), 1000)
     } catch (err: any) {
-      alert('Reset failed: ' + err.message)
+      toast.error('Reset failed: ' + err.message)
       setResetting(false)
     }
   }
