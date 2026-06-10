@@ -7,18 +7,25 @@ import { DashboardStats, Round } from '@/lib/types'
 function ResetModal({ onClose, onConfirmed }: { onClose: () => void; onConfirmed: () => void }) {
   const [typed, setTyped] = useState('')
   const [resetting, setResetting] = useState(false)
-  const supabase = createClient()
+
 
   const handleReset = async () => {
     setResetting(true)
-    const { data, error } = await supabase.rpc('reset_all_data')
-    if (error || !data?.success) {
-      alert('Reset failed: ' + (error?.message || data?.message || 'Unknown error'))
+    try {
+      const res = await fetch('/api/admin/reset', { method: 'POST' })
+      const data = await res.json()
+      if (!data.success) {
+        alert('Reset failed: ' + (data.message || 'Unknown error'))
+        setResetting(false)
+        return
+      }
+      onConfirmed()
+    } catch (err: any) {
+      alert('Reset failed: ' + err.message)
       setResetting(false)
-      return
     }
-    onConfirmed()
   }
+
 
   return (
     <div style={{
