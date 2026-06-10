@@ -4,27 +4,29 @@ import { createClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 export default async function RootPage() {
+  let destination = '/login'
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) redirect('/login')
+    if (user) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
 
-    const { data: userData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (userData?.role === 'admin') {
-      redirect('/admin/dashboard')
-    } else {
-      redirect('/team/scan')
+      if (userData?.role === 'admin') {
+        destination = '/admin/dashboard'
+      } else {
+        destination = '/team/scan'
+      }
     }
-  } catch (e: unknown) {
-    // Re-throw Next.js redirect errors (they use throw internally)
-    if (e && typeof e === 'object' && 'digest' in e) throw e
-    redirect('/login')
+  } catch {
+    // Supabase connection or auth error — fall through to redirect to /login
   }
+
+  redirect(destination)
 }
 
