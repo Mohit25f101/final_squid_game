@@ -2,6 +2,19 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+
+  // ── Public routes — skip auth entirely, return immediately ──
+  if (
+    pathname.startsWith('/player/') ||
+    pathname.startsWith('/api/player/') ||
+    pathname === '/live' ||
+    pathname === '/login'
+  ) {
+    return NextResponse.next()
+  }
+
+  // ── All other routes need auth check ────────────────────────
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -25,23 +38,11 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const pathname = request.nextUrl.pathname
-
-  // Public routes — always accessible
-  if (
-    pathname.startsWith('/player/') ||
-    pathname.startsWith('/api/player/') ||
-    pathname === '/live' ||
-    pathname === '/login'
-  ) {
-    return supabaseResponse
-  }
-
   // Root redirect
   if (pathname === '/') {
-    if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
+    if (!user) return NextResponse.redirect(new URL('/login', request.url))
+    // authenticated — let the page handle the dashboard redirect
+    return supabaseResponse
   }
 
   // Protected routes — require authentication
@@ -49,7 +50,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Role-based access — fetch role from DB
+  // Role-based access
   if (user && (pathname.startsWith('/admin') || pathname.startsWith('/team'))) {
     const { data: userData } = await supabase
       .from('users')
@@ -61,7 +62,6 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // Only admins can access /admin routes
     if (pathname.startsWith('/admin') && userData.role !== 'admin') {
       return NextResponse.redirect(new URL('/team/scan', request.url))
     }
