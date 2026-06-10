@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { fetchAllParticipants } from '@/lib/supabase/fetchAll'
 import { DashboardStats, Round } from '@/lib/types'
 import toast from 'react-hot-toast'
 
@@ -136,12 +137,11 @@ export default function DashboardClient({ initialStats, rounds }: { initialStats
   }, [])
 
   const refetch = async () => {
-    const [pRes, rrRes, esRes] = await Promise.all([
-      supabase.from('participants').select('current_status, registered'),
+    const [participants, rrRes, esRes] = await Promise.all([
+      fetchAllParticipants(supabase, 'current_status, registered'),
       supabase.from('round_results').select('round_id, result'),
       supabase.from('event_state').select('*, round:rounds(*)').eq('id', 1).single(),
     ])
-    const participants = pRes.data || []
     const roundResults = rrRes.data || []
     const eventState = esRes.data
     const total = participants.length

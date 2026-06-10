@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { fetchAllParticipants } from '@/lib/supabase/fetchAll'
 
 interface Stats {
   active: number
@@ -16,11 +17,10 @@ export default function LiveClient() {
   const [tick, setTick] = useState(0)
 
   const fetchStats = async () => {
-    const [pRes, esRes] = await Promise.all([
-      supabase.from('participants').select('current_status, registered'),
+    const [participants, esRes] = await Promise.all([
+      fetchAllParticipants(supabase, 'current_status, registered'),
       supabase.from('event_state').select('*, round:rounds(round_name)').eq('id', 1).single(),
     ])
-    const participants = pRes.data || []
     const registered = participants.filter(p => p.registered)
     setStats({
       total: registered.length,

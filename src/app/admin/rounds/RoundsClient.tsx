@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { fetchAllParticipants } from '@/lib/supabase/fetchAll'
 import { Round, EventState } from '@/lib/types'
 import toast from 'react-hot-toast'
 
@@ -96,12 +97,11 @@ function RoundGroupMaker({ roundId, roundName }: { roundId: string; roundName: s
   const generate = async () => {
     if (groupSize < 2) { toast.error('Group size must be ≥ 2'); return }
     setLoading(true); setDone(false)
-    const { data, error } = await supabase
-      .from('participants')
-      .select('participant_id, name, roll_no, gender, assigned_qr')
-      .eq('current_status', 'active')
-      .order('roll_no')
-    if (error || !data?.length) { toast.error('No active players'); setLoading(false); return }
+    const data = await fetchAllParticipants(supabase, 'participant_id, name, roll_no, gender, assigned_qr', {
+      eq: { column: 'current_status', value: 'active' },
+      order: { column: 'roll_no' }
+    })
+    if (!data?.length) { toast.error('No active players'); setLoading(false); return }
     setPlayers(data)
     setGroups(makeGroups(data, groupSize))
     setDone(true); setLoading(false)
